@@ -1,18 +1,14 @@
 package ru.sber;
 
-import java.util.ArrayDeque;
 import java.util.Queue;
 
 public class SlidingLog {
     private final int n;
     private final Queue<Request> queue;
-    private final Service service;
 
-    public SlidingLog(int n) {
+    public SlidingLog(int n, Queue<Request> queue) {
         this.n = n;
-        queue = new ArrayDeque<>();
-        service = new Service(queue);
-        service.start();
+        this.queue = queue;
     }
 
     public Response push(Request request) {
@@ -30,9 +26,4 @@ public class SlidingLog {
         }
         return new Response(Status.ExecutedSuccessfully);
     }
-
-    public void stop() {
-        service.stop();
-    }
-
 }

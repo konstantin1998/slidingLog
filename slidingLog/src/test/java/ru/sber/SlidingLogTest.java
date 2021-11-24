@@ -2,13 +2,19 @@ package ru.sber;
 
 import org.junit.Test;
 
+import java.util.ArrayDeque;
+import java.util.Queue;
+
 public class SlidingLogTest {
     @Test
     public void test() {
         int n = 1000;
-        SlidingLog slidingLog = new SlidingLog(n);
+        Queue<Request> queue = new ArrayDeque<>();
+        SlidingLog slidingLog = new SlidingLog(n, queue);
+        Service service = new Service(queue);
+        service.start();
         makeRequests(slidingLog);
-        slidingLog.stop();
+        service.stop();
     }
 
     private void makeRequests(SlidingLog slidingLog) {

@@ -14,14 +14,7 @@ public class Service {
         Thread t = new Thread(() -> {
             while (true) {
                 while (true) {
-                    Request r;
-                    synchronized (queue) {
-                        while(queue.isEmpty() && isWorking) {
-                            doWait();
-                        }
-                        r = queue.poll();
-                    }
-                    executeRequest(r);
+                    executeRequest();
                     break;
                 }
             }
@@ -29,7 +22,18 @@ public class Service {
         t.start();
     }
 
-    private void executeRequest(Request r) { }
+    private void executeRequest() {
+        Request r;
+        synchronized (queue) {
+            while(queue.isEmpty() && isWorking) {
+                doWait();
+            }
+            r = queue.poll();
+        }
+        doExecute(r);
+    }
+
+    private void doExecute(Request r) { }
 
     private void doWait() {
         try {
