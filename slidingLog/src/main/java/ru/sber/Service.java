@@ -4,7 +4,6 @@ import java.util.Queue;
 
 public class Service {
     private final Queue<Request> queue;
-    private volatile boolean isWorking = true;
 
     public Service(Queue<Request> queue) {
         this.queue = queue;
@@ -25,7 +24,7 @@ public class Service {
     private void executeRequest() {
         Request r;
         synchronized (queue) {
-            while(queue.isEmpty() && isWorking) {
+            while(queue.isEmpty()) {
                 doWait();
             }
             r = queue.poll();
@@ -41,9 +40,5 @@ public class Service {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-    }
-
-    public void stop() {
-        isWorking = false;
     }
 }
