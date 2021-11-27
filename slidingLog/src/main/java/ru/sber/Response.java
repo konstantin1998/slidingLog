@@ -1,8 +1,5 @@
 package ru.sber;
 
-import lombok.RequiredArgsConstructor;
-
-
 public class Response {
     private final Status status;
 

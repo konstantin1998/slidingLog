@@ -2,14 +2,13 @@ package ru.sber;
 
 import org.junit.Test;
 import static org.junit.Assert.*;
-import java.util.ArrayDeque;
-import java.util.Queue;
+import java.time.Instant;
 
 /*
 Доказательство корректности алгоритма: slidingLog каждый раз, когда у него вызывают метод push
-проверяет не превышен ли максимальный размер очереди, если превышен, то кидает исключение.
-При этом проверка размера очереди происходит атомарно, как и вставка запроса в очередь.
-Также сервис атомарно достает из очереди запросы
+проверяет не превышено ли максимальное количество запросов за определенный временной интервал,
+если превышено, то кидает исключение. При этом проверка количества запросов и добавление новых
+делаются атомарно.
 В тесте несколько потоков вызывают метод push, если при этом какой-то из этих потоков ловит исключение,
 то он устанавливает переменную exceptionWasThrown = true,
 тест проходит, если ни в одном из потоков не было исключений.
@@ -19,15 +18,12 @@ public class SlidingLogTest {
     private boolean exceptionWasThrown = false;
 
     @Test
-    public void test() {
-        int n = 1000;
-        Queue<Request> queue = new ArrayDeque<>();
-        SlidingLog slidingLog = new SlidingLog(n, queue);
+    public void mustKeepLogSizeLessThanConfiguredValue() {
+        int n = 50;
+        long expiryPeriod = 100;
+        SlidingLog slidingLog = new SlidingLog(n, expiryPeriod);
 
-        Service service = new Service(queue);
-        service.start();
         makeRequests(slidingLog);
-
         assertFalse(exceptionWasThrown);
     }
 
@@ -54,10 +50,12 @@ public class SlidingLogTest {
     private Runnable getTask(SlidingLog slidingLog) {
         return () -> {
             for(int i = 0; i < 1_000_000; i++) {
-                Request r = new Request();
+                Instant timestamp = Instant.ofEpochMilli(System.currentTimeMillis());
+                Request r = new Request(timestamp);
                 try {
                     slidingLog.push(r);
-                } catch (Exception e) {
+                } catch (RuntimeException e) {
+                    e.printStackTrace();
                     exceptionWasThrown = true;
                 }
             }
