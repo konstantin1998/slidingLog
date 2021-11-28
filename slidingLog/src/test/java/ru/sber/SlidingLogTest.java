@@ -1,64 +1,78 @@
 package ru.sber;
 
 import org.junit.Test;
+import java.util.ArrayList;
+import java.util.List;
 import static org.junit.Assert.*;
-import java.time.Instant;
 
-/*
-Доказательство корректности алгоритма: slidingLog каждый раз, когда у него вызывают метод push
-проверяет не превышено ли максимальное количество запросов за определенный временной интервал,
-если превышено, то кидает исключение. При этом проверка количества запросов и добавление новых
-делаются атомарно.
-В тесте несколько потоков вызывают метод push, если при этом какой-то из этих потоков ловит исключение,
-то он устанавливает переменную exceptionWasThrown = true,
-тест проходит, если ни в одном из потоков не было исключений.
-*/
+public class SlidingLogTest {
+    private final int maxLogSize = 4;
+    private final int expirationPeriodMs = 100;
+    private final SlidingLog slidingLog = new SlidingLog(maxLogSize, expirationPeriodMs);
+    private int nTasks = maxLogSize + 2;
 
-//public class SlidingLogTest {
-//    private boolean exceptionWasThrown = false;
-//
-//    @Test
-//    public void mustKeepLogSizeLessThanConfiguredValue() {
-//        int n = 50;
-//        long expiryPeriod = 100;
-//        SlidingLog slidingLog = new SlidingLog(n, expiryPeriod);
-//
-//        makeRequests(slidingLog);
-//        assertFalse(exceptionWasThrown);
-//    }
-//
-//    private void makeRequests(SlidingLog slidingLog) {
-//        Thread[] threads = {
-//                new Thread(getTask(slidingLog)),
-//                new Thread(getTask(slidingLog)),
-//                new Thread(getTask(slidingLog)),
-//                new Thread(getTask(slidingLog))
-//        };
-//        for(Thread t: threads) {
-//            t.start();
-//        }
-//
-//        for(Thread t: threads) {
-//            try {
-//                t.join();
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//    }
-//
-//    private Runnable getTask(SlidingLog slidingLog) {
-//        return () -> {
-//            for(int i = 0; i < 1_000_000; i++) {
-//                Instant timestamp = Instant.ofEpochMilli(System.currentTimeMillis());
-//                Request r = new Request();
-//                try {
-//                    slidingLog.push(r);
-//                } catch (RuntimeException e) {
-//                    e.printStackTrace();
-//                    exceptionWasThrown = true;
-//                }
-//            }
-//        };
-//    }
-//}
+    @Test
+    public void makeRequests() throws InterruptedException {
+
+        List<Task> tasks = initializeTasks();
+        List<Thread> threads = initializeThreads(tasks);
+
+        fillEmptySlotsInSlidingLog(threads);
+
+        makeSlidingLogRejectRequest(threads);
+
+        Thread.sleep(expirationPeriodMs);
+
+        makeSlidingLogClearOldEntriesAndAcceptRequest(nTasks - 1, threads);
+
+        verifyStatuses(tasks);
+    }
+
+    private void verifyStatuses(List<Task> tasks) {
+        for (int i = 0; i < nTasks; i++) {
+            Status expectedResponseStatus;
+            if (i == maxLogSize) {
+                expectedResponseStatus = Status.Rejected;
+            } else {
+                expectedResponseStatus = Status.Accepted;
+            }
+
+            assertEquals(expectedResponseStatus, tasks.get(i).getStatus());
+        }
+    }
+
+    private void fillEmptySlotsInSlidingLog(List<Thread> threads) throws InterruptedException {
+        for (int i = 0; i < maxLogSize; i++) {
+            threads.get(i).start();
+        }
+        for (int i = 0; i < maxLogSize; i++) {
+            threads.get(i).join();
+        }
+    }
+
+    private List<Thread> initializeThreads(List<Task> tasks) {
+        List<Thread> threads = new ArrayList<>();
+        for (int i = 0; i < nTasks; i++) {
+            threads.add(new Thread(tasks.get(i)));
+        }
+        return threads;
+    }
+
+    private List<Task> initializeTasks() {
+        List<Task> tasks = new ArrayList<>();
+        for (int i = 0; i < nTasks; i++) {
+            tasks.add(new Task(slidingLog));
+        }
+        return tasks;
+    }
+
+    private void makeSlidingLogRejectRequest(List<Thread> threads) throws InterruptedException {
+        threads.get(maxLogSize).start();
+        threads.get(maxLogSize).join();
+    }
+
+    private void makeSlidingLogClearOldEntriesAndAcceptRequest(int n, List<Thread> threads) throws InterruptedException {
+        threads.get(n).start();
+        threads.get(n).join();
+    }
+}
