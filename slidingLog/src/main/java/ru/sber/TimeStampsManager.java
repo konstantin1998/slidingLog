@@ -8,13 +8,13 @@ public class TimeStampsManager {
     private List<Long> timestamps;
     private final long expirationPeriod;
 
-    public TimeStampsManager(long expirationPeriodMs) {
-        this.expirationPeriod = expirationPeriodMs;
+    public TimeStampsManager(long expirationPeriod) {
+        this.expirationPeriod = expirationPeriod;
         timestamps = new ArrayList<>();
     }
 
     public void deleteOutdatedTimestamps() {
-        long currTime = System.nanoTime();
+        long currTime = System.currentTimeMillis();
         timestamps = timestamps
                 .stream()
                 .filter(timestamp -> currTime - timestamp < expirationPeriod)
@@ -25,7 +25,7 @@ public class TimeStampsManager {
         return timestamps.size();
     }
 
-    public void addEntry(long timestampNanoseconds) {
-        timestamps.add(timestampNanoseconds);
+    public void addEntry(long timestamp) {
+        timestamps.add(timestamp);
     }
 }
