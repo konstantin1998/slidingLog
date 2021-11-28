@@ -8,36 +8,48 @@ import static org.junit.Assert.*;
 public class SlidingLogTest {
     private final int maxLogSize = 4;
     private final int expirationPeriodMs = 100;
-    private final SlidingLog slidingLog = new SlidingLog(maxLogSize, expirationPeriodMs);
-    private int nTasks = maxLogSize + 2;
+    private SlidingLog slidingLog = new SlidingLog(maxLogSize, expirationPeriodMs);
+    private final int nTasks = maxLogSize + 2;
 
     @Test
-    public void makeRequests() throws InterruptedException {
+    public void test(){
+        int n = 100;
+        for(int i = 0; i < n; i++) {
+            List<Task> tasks = makeRequests();
+            verifyStatuses(tasks);
+            refreshSlidingLog();
+        }
+    }
 
+    private List<Task> makeRequests() {
         List<Task> tasks = initializeTasks();
         List<Thread> threads = initializeThreads(tasks);
 
-        fillEmptySlotsInSlidingLog(threads);
+        try {
+            fillEmptySlotsInSlidingLog(threads);
+            makeSlidingLogRejectRequest(threads);
+            Thread.sleep(expirationPeriodMs);
+            makeSlidingLogClearOldEntriesAndAcceptRequest(nTasks - 1, threads);
+        } catch(InterruptedException e) {
+            e.printStackTrace();
+        }
+        return tasks;
+    }
 
-        makeSlidingLogRejectRequest(threads);
-
-        Thread.sleep(expirationPeriodMs);
-
-        makeSlidingLogClearOldEntriesAndAcceptRequest(nTasks - 1, threads);
-
-        verifyStatuses(tasks);
+    private void refreshSlidingLog() {
+        slidingLog = new SlidingLog(maxLogSize, expirationPeriodMs);
     }
 
     private void verifyStatuses(List<Task> tasks) {
-        for (int i = 0; i < nTasks; i++) {
+        for (int j = 0; j < nTasks; j++) {
             Status expectedResponseStatus;
-            if (i == maxLogSize) {
+            if (j == maxLogSize) {
                 expectedResponseStatus = Status.Rejected;
             } else {
                 expectedResponseStatus = Status.Accepted;
             }
 
-            assertEquals(expectedResponseStatus, tasks.get(i).getStatus());
+            assertEquals(expectedResponseStatus, tasks.get(j).getStatus());
         }
     }
 
