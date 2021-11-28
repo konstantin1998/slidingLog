@@ -1,24 +1,23 @@
 package ru.sber;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class TimeStampsManager {
-    private List<Instant> timestamps;
-    private final long expirePeriod;
+    private List<Long> timestamps;
+    private final long expirationPeriod;
 
-    public TimeStampsManager(long expirePeriod) {
-        this.expirePeriod = expirePeriod;
+    public TimeStampsManager(long expirationPeriod) {
+        this.expirationPeriod = expirationPeriod;
         timestamps = new ArrayList<>();
     }
 
-    public void deletedOutdatedTimestamps() {
+    public void deleteOutdatedTimestamps() {
         long currTime = System.currentTimeMillis();
         timestamps = timestamps
                 .stream()
-                .filter(timestamp -> currTime - timestamp.toEpochMilli() < expirePeriod)
+                .filter(timestamp -> currTime - timestamp < expirationPeriod)
                 .collect(Collectors.toList());
     }
 
@@ -26,7 +25,7 @@ public class TimeStampsManager {
         return timestamps.size();
     }
 
-    public void addEntry(Instant timestamp) {
+    public void addEntry(long timestamp) {
         timestamps.add(timestamp);
     }
 }

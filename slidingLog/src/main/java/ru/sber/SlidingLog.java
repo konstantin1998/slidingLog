@@ -14,13 +14,10 @@ public class SlidingLog {
     }
 
     public Response push(Request request) {
-        Instant timestamp = request.getTimestamp();
+        long timestamp = System.currentTimeMillis();
         synchronized (timeStampsManager) {
-            if (timeStampsManager.getSize() > maxRequestsCount) {
-                throw new RuntimeException("maximum requests number exceeded");
-            }
 
-            timeStampsManager.deletedOutdatedTimestamps();
+            timeStampsManager.deleteOutdatedTimestamps();
             if(timeStampsManager.getSize() < maxRequestsCount) {
                 timeStampsManager.addEntry(timestamp);
                 return new Response(Status.Accepted);
